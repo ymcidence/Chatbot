@@ -24,7 +24,7 @@ def word_embedding(name, vocabulary_size, embedding_size) -> tf.Tensor:
     return word_vector
 
 
-def rnn_encoder(name, input_tensor, input_length, embedding_size):
+def rnn_encoder(name, input_tensor, input_length, embedding_size, training=True):
     """
 
 
@@ -33,12 +33,14 @@ def rnn_encoder(name, input_tensor, input_length, embedding_size):
     :param input_tensor:
     :param input_length:
     :param embedding_size:
+    :param training:
     :return:
     """
 
     with tf.variable_scope(name):
-        rnn_cell1 = tf.nn.rnn_cell.LSTMCell(embedding_size, name='cell1', dtype=tf.float32)
-        rnn_cell2 = tf.nn.rnn_cell.LSTMCell(embedding_size, name='cell2', dtype=tf.float32)
+        rnn_cell1 = tf.nn.rnn_cell.GRUCell(embedding_size, name='cell1', dtype=tf.float32)
+        rnn_cell1 = tf.nn.rnn_cell.DropoutWrapper(rnn_cell1, output_keep_prob=.9 if training else 1.)
+        rnn_cell2 = tf.nn.rnn_cell.GRUCell(embedding_size, name='cell2', dtype=tf.float32)
         # noinspection PyUnresolvedReferences
         out, state = tf.nn.bidirectional_dynamic_rnn(cell_fw=rnn_cell1, cell_bw=rnn_cell2, inputs=input_tensor,
                                                      sequence_length=input_length, dtype=tf.float32)
@@ -46,8 +48,8 @@ def rnn_encoder(name, input_tensor, input_length, embedding_size):
     return out, state
 
 
-def rnn_decoder(name, input_hidden, input_length, vocabulary_size, embedding_size,
-                data_helper: tf.contrib.seq2seq.Helper, max_length=20, reuse=False):
+def rnn_decoder(name, input_hidden, input_state, input_length, vocabulary_size, embedding_size,
+                data_helper: tf.contrib.seq2seq.Helper, max_length=20, training=True, reuse=False):
     """
 
 
@@ -58,39 +60,64 @@ def rnn_decoder(name, input_hidden, input_length, vocabulary_size, embedding_siz
     :param embedding_size:
     :param data_helper:
     :param max_length:
+    :param training:
     :param reuse:
     :return:
     """
-    batch_size = tf.shape(input_hidden[0])[0]
+    # batch_size = tf.shape(input_hidden[0])[0]
     input_hidden = (input_hidden[0] + input_hidden[1]) / 2
-    # input_state = (input_state[0] + input_state[1]) / 2
+    input_state = (input_state[0] + input_state[1]) / 2
     # vocabulary_size, embedding_size = word_vector.get_shape().as_list()
 
     with tf.variable_scope(name, reuse=reuse):
         # starts = tf.constant(starts, dtype=tf.float32)
         # word_emb = tf.nn.embedding_lookup(word_vector, starts)
-        rnn_cell = tf.nn.rnn_cell.LSTMCell(embedding_size, name='cell', dtype=tf.float32)
+        rnn_cell1 = tf.nn.rnn_cell.GRUCell(embedding_size, name='cell1', dtype=tf.float32)
+        # rnn_cell1 = tf.nn.rnn_cell.DropoutWrapper(rnn_cell1, output_keep_prob=.9 if training else 1.)
+        #
+        # rnn_cell2 = tf.nn.rnn_cell.GRUCell(embedding_size, name='cell2', dtype=tf.float32)
+
+        # rnn_cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell1, rnn_cell2], state_is_tuple=False)
+
         attention_mechanism = tf.contrib.seq2seq.LuongAttention(embedding_size, input_hidden,
                                                                 memory_sequence_length=input_length)
-        attn_cell = tf.contrib.seq2seq.AttentionWrapper(rnn_cell, attention_mechanism,
+        attn_cell = tf.contrib.seq2seq.AttentionWrapper(rnn_cell1, attention_mechanism,
                                                         attention_layer_size=embedding_size / 2)
 
         out_cell = tf.contrib.rnn.OutputProjectionWrapper(attn_cell, vocabulary_size, reuse=reuse)
 
+        # decoder = tf.contrib.seq2seq.BasicDecoder(cell=out_cell, helper=data_helper,
+        #                                           initial_state=out_cell.zero_state(dtype=tf.float32,
+        #                                                                             batch_size=batch_size))
         decoder = tf.contrib.seq2seq.BasicDecoder(cell=out_cell, helper=data_helper,
-                                                  initial_state=out_cell.zero_state(dtype=tf.float32,
-                                                                                    batch_size=batch_size))
+                                                  initial_state=out_cell.get_initial_state(input_state))
         out = tf.contrib.seq2seq.dynamic_decode(decoder=decoder, output_time_major=False, impute_finished=False,
                                                 maximum_iterations=max_length)
 
     return out[0]
 
 
+# def rnn_attention(encoder_out, current_rnn_out):
+
+
+def rnn_decoder_simple(name, input_hidden, input_state, input_start_token, input_length, vocabulary_size,
+                       embedding_size):
+    with tf.variable_scope(name):
+        batch_size = tf.shape(input_hidden[0])[0]
+        input_hidden = (input_hidden[0] + input_hidden[1]) / 2
+        rnn_cell = tf.nn.rnn_cell.LSTMCell(embedding_size, name='cell', dtype=tf.float32)
+        rnn_cell = tf.nn.rnn_cell.DropoutWrapper(rnn_cell, output_keep_prob=1.)
+
+        # noinspection PyUnresolvedReferences
+
+    return 0
+
+
 # noinspection PyShadowingNames
 class Sequence2Sequence(object):
     def __init__(self, **kwargs):
         self.batch_size = kwargs.get('batch_size')
-        self.max_length = kwargs.get('max_length')
+        self.max_length = kwargs.get('max_length') + 2
         self.embedding_size = kwargs.get('embedding_size')
         self.voc = voc.Voc('hehe')
         self.voc.load(kwargs.get('voc_dir'))
@@ -99,7 +126,7 @@ class Sequence2Sequence(object):
         self.sentence_out = tf.placeholder(tf.int32, shape=[None, None], name='sentence_out')
         self.net = self._net()
         self.g_step = tf.Variable(0, trainable=False, name='global_step')
-        self.loss = self._loss()
+        self.loss = self._loss2()
 
     def _net(self):
         input_length = tf.reduce_sum(tf.to_int32(tf.not_equal(self.sentence_in, PAD_token)), 1)
@@ -112,53 +139,88 @@ class Sequence2Sequence(object):
 
         start_tensor = tf.cast(tf.ones([tf.shape(self.sentence_in)[0]], dtype=tf.int32) * SOS_token, dtype=tf.int32)
 
-        data_helper = tf.contrib.seq2seq.TrainingHelper(word_emb, output_length) if self.training else \
-            tf.contrib.seq2seq.GreedyEmbeddingHelper(
-                word_vector, start_tokens=tf.to_int32(start_tensor), end_token=EOS_token)
+        data_helper = tf.contrib.seq2seq.TrainingHelper(tf.nn.embedding_lookup(word_vector, self.sentence_out),
+                                                        output_length) if self.training else \
+            tf.contrib.seq2seq.GreedyEmbeddingHelper(word_vector, start_tokens=tf.to_int32(start_tensor),
+                                                     end_token=EOS_token)
 
-        encoder_out, encoder_state = rnn_encoder('encoder', word_emb, input_length, self.embedding_size)
+        encoder_out, encoder_state = rnn_encoder('encoder', word_emb, input_length, self.embedding_size,
+                                                 training=self.training)
 
-        decoder_out = rnn_decoder('decoder', encoder_out, input_length, self.voc.num_words, self.embedding_size,
-                                  data_helper)
+        decoder_out = rnn_decoder('decoder', encoder_out, encoder_state, input_length, self.voc.num_words,
+                                  self.embedding_size, data_helper, max_length=self.max_length - 1,
+                                  training=self.training)
 
         return decoder_out
 
-    def _loss(self):
+    def _net_simple(self):
 
-        to_pad = self.max_length - tf.shape(self.net.rnn_output)[1]
-        padded_logits = tf.pad(self.net.rnn_output, [[0, 0], [0, to_pad], [0, 0]], mode='CONSTANT',
-                               constant_values=PAD_token)
+        return 0
 
-        to_pad = self.max_length - tf.shape(self.sentence_out)[1]
-        padded_targets = tf.pad(self.sentence_out, [[0, 0], [0, to_pad]], mode='CONSTANT',
-                                constant_values=PAD_token)
+    # def _loss(self):
+    #
+    #     to_pad = self.max_length - tf.shape(self.net.rnn_output)[1]
+    #     padded_logits = tf.pad(self.net.rnn_output, [[0, 0], [0, to_pad], [0, 0]], mode='CONSTANT',
+    #                            constant_values=PAD_token)
+    #
+    #     to_pad = self.max_length - tf.shape(self.sentence_out)[1]
+    #     padded_targets = tf.pad(self.sentence_out, [[0, 0], [0, to_pad]], mode='CONSTANT',
+    #                             constant_values=PAD_token)
+    #
+    #     loss_mask = tf.to_float(tf.not_equal(padded_targets, PAD_token))
+    #     loss_seq = tf.contrib.seq2seq.sequence_loss(logits=padded_logits, targets=padded_targets, weights=loss_mask)
+    #     loss_seq = tf.reduce_mean(loss_seq)
+    #
+    #     single_regu = [tf.nn.l2_loss(v) for v in tf.trainable_variables() if v.name.find('word_vector') < 0]
+    #     loss_regu = tf.add_n(single_regu) * 1e-5
+    #
+    #     loss = loss_seq  # + loss_regu
+    #
+    #     tf.summary.scalar('loss', loss)
+    #     tf.summary.scalar('loss_seq', loss_seq)
+    #     tf.summary.scalar('loss_regu', loss_regu)
+    #
+    #     self.a = padded_targets
+    #     self.b = padded_logits
+    #     self.c = loss_mask
+    #     return loss
 
-        loss_mask = tf.to_float(tf.not_equal(padded_targets, PAD_token))
-        loss_seq = tf.contrib.seq2seq.sequence_loss(logits=padded_logits, targets=padded_targets, weights=loss_mask)
-        loss_seq = tf.reduce_mean(loss_seq)
+    def _loss2(self):
+        with tf.variable_scope('loss'):
+            to_pad = self.max_length - tf.shape(self.net.rnn_output)[1] - 1
 
-        single_regu = [tf.nn.l2_loss(v) for v in tf.trainable_variables() if v.name.find('word_vector') < 0]
-        loss_regu = tf.add_n(single_regu) * 1e-5
+            padded_logits = tf.pad(self.net.rnn_output, [[0, 0], [0, to_pad], [0, 0]], mode='CONSTANT',
+                                   constant_values=PAD_token)
 
-        loss = loss_seq  # + loss_regu
+            loss_mask = tf.to_float(tf.not_equal(self.sentence_out[:, 1:], PAD_token))
+            int_labels = tf.cast(self.sentence_out[:, 1:], tf.int32)
+            loss_seq = tf.losses.sparse_softmax_cross_entropy(labels=int_labels, logits=padded_logits,
+                                                              weights=loss_mask)
+
+            loss_seq = tf.reduce_mean(loss_seq)
+
+            single_regu = [tf.nn.l2_loss(v) for v in tf.trainable_variables() if
+                           v.name.find('word_vector') < 0 and v.name.find('bias') < 0]
+            loss_regu = tf.add_n(single_regu) * 1e-7
+
+            loss = loss_seq  # + loss_regu
 
         tf.summary.scalar('loss', loss)
         tf.summary.scalar('loss_seq', loss_seq)
         tf.summary.scalar('loss_regu', loss_regu)
+        self.a = int_labels
+        self.b = loss_mask
 
-        self.a = padded_targets
-        self.b = padded_logits
-        self.c = loss_mask
         return loss
 
     def _op(self):
-        optimizer = tf.train.AdamOptimizer(1e-3)
+        optimizer = tf.train.AdamOptimizer(5e-4)
         train_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-        # gradients = optimizer.compute_gradients(self.loss, var_list=train_list)
-        # clipped_gradients = [(tf.clip_by_value(grad, -30., 30.), var) for grad, var in gradients]
-        # op = optimizer.apply_gradients(clipped_gradients, global_step=self.g_step)
+        gradients = optimizer.compute_gradients(self.loss, var_list=train_list)
+        clipped_gradients = [(tf.clip_by_value(grad, -30., 30.), var) for grad, var in gradients]
+        op = optimizer.apply_gradients(clipped_gradients, global_step=self.g_step)
 
-        op = optimizer.minimize(self.loss, global_step=self.g_step, var_list=train_list)
+        # op = optimizer.minimize(self.loss, global_step=self.g_step, var_list=train_list)
 
         return op
 
@@ -195,6 +257,10 @@ class Sequence2Sequence(object):
         summary_op = tf.summary.merge(tf.get_collection(tf.GraphKeys.SUMMARIES))
         writer.add_graph(sess.graph)
 
+        print('-------------------------trainable variables-------------------------')
+        [print(v.name) for v in tf.trainable_variables()]
+        print('-------------------------trainable variables-------------------------')
+        print('--------------------------------start--------------------------------')
         for i in range(max_iter):
             batch_data = data.next_batch()
             feed_dict = {self.sentence_in: batch_data.get('sentence_in'),
@@ -206,14 +272,14 @@ class Sequence2Sequence(object):
             step = tf.train.global_step(sess, self.g_step)
             writer.add_summary(summary_value, step)
 
-            if (i + 1) % 20 == 0:
+            if (i + 1) % 50 == 0:
                 print('iter: {}, loss: {}'.format(i, loss_value))
 
             if (i + 1) % 100 == 0:
                 hook_sentence = self.vector_to_sentence(net_value[0, :])
                 print('q: {}, a: {}'.format(batch_data.get('words_in')[0], hook_sentence))
 
-            if (i + 1) % 1000 == 0:
+            if (i + 1) % 5000 == 0:
                 self.save(save_dir=save_path, sess=sess, step=step)
 
     def forward(self, sentence, sess: tf.Session):
@@ -243,7 +309,8 @@ class Sequence2Sequence(object):
                     break
                 input_sentence = voc.unicode_to_ascii(input_sentence)
                 input_sentence = np.asarray(
-                    [self.voc.word2index[word] for word in input_sentence.split(' ')] + [voc.EOS_token])
+                    [[voc.SOS_token] + self.voc.word2index[word] for word in input_sentence.split(' ')] + [
+                        voc.EOS_token])
 
                 if input_sentence.shape[0] >= self.max_length:
                     input_sentence = input_sentence[:self.max_length - 1]
@@ -261,8 +328,8 @@ class Sequence2Sequence(object):
 
 
 def do_training():
-    config = {'batch_size': 60,
-              'max_length': 20,
+    config = {'batch_size': 150,
+              'max_length': 15,
               'embedding_size': 512,
               'voc_dir': 'data/voc.npy',
               'sentence_dir': 'data/sentences.npy',
@@ -273,13 +340,13 @@ def do_training():
 
     data = Dataset(**config)
     model = Sequence2Sequence(**config)
-    restore_d = None  # '/home/ymcidence/Workspace/ChatBotYH/data/log/model/Thu29Nov2018-130328/ymmodel-20000'
-    model.train(data, sess, 100000, log_dir='data/log', restore_dir=restore_d)
+    restore_d = None  # '/home/ymcidence/Workspace/ChatBotYH/data/log/model/Sun02Dec2018-082331/ymmodel-130000'
+    model.train(data, sess, 300000, log_dir='data/log', restore_dir=restore_d)
 
 
 def do_test():
     config = {'batch_size': 1,
-              'max_length': 20,
+              'max_length': 15,
               'embedding_size': 512,
               'voc_dir': 'data/voc.npy',
               'sentence_dir': 'data/sentences.npy',
@@ -289,10 +356,9 @@ def do_test():
     sess = tf.Session(config=sess_config)
 
     model = Sequence2Sequence(**config)
-    restore_dir = '/home/ymcidence/Workspace/ChatBotYH/data/log/model/Thu29Nov2018-130328/ymmodel-20000'
+    restore_dir = '/home/ymcidence/Workspace/ChatBotYH/data/log/model/Sun02Dec2018-082331/ymmodel-120000'
     model.test(sess, restore_dir=restore_dir)
 
 
 if __name__ == '__main__':
     do_training()
-    # do_test()
