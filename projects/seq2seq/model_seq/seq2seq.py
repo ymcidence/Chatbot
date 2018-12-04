@@ -10,6 +10,11 @@ SOS_token = voc.SOS_token
 EOS_token = voc.EOS_token
 
 
+PAD_token = voc.PAD_token
+SOS_token = voc.SOS_token
+EOS_token = voc.EOS_token
+
+
 def word_embedding(name, vocabulary_size, embedding_size) -> tf.Tensor:
     """
 
@@ -214,7 +219,7 @@ class Sequence2Sequence(object):
         return loss
 
     def _op(self):
-        optimizer = tf.train.AdamOptimizer(5e-4)
+        optimizer = tf.train.AdamOptimizer(2e-4)
         train_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         gradients = optimizer.compute_gradients(self.loss, var_list=train_list)
         clipped_gradients = [(tf.clip_by_value(grad, -30., 30.), var) for grad, var in gradients]
@@ -277,7 +282,8 @@ class Sequence2Sequence(object):
 
             if (i + 1) % 100 == 0:
                 hook_sentence = self.vector_to_sentence(net_value[0, :])
-                print('q: {}, a: {}'.format(batch_data.get('words_in')[0], hook_sentence))
+                print('q: {}, a: {}'.format(batch_data.get('words_in')[0], batch_data.get('words_out')[0]))
+                print(hook_sentence)
 
             if (i + 1) % 5000 == 0:
                 self.save(save_dir=save_path, sess=sess, step=step)
@@ -309,7 +315,32 @@ class Sequence2Sequence(object):
                     break
                 input_sentence = voc.unicode_to_ascii(input_sentence)
                 input_sentence = np.asarray(
-                    [[voc.SOS_token] + self.voc.word2index[word] for word in input_sentence.split(' ')] + [
+                    [voc.SOS_token] + [self.voc.word2index[word] for word in input_sentence.split(' ')] + [
+                        voc.EOS_token])
+
+                if input_sentence.shape[0] >= self.max_length:
+                    input_sentence = input_sentence[:self.max_length - 1]
+
+                input_sentence = np.pad(input_sentence, (0, self.max_length - input_sentence.shape[0]), 'constant',
+                                        constant_values=PAD_token)
+
+                output_words = self.forward(np.asarray([input_sentence]), sess)[0, :]
+                output_words = [self.voc.index2word[token.item()] for token in output_words]
+
+                output_words[:] = [x for x in output_words if not (x == 'EOS' or x == 'PAD')]
+                print('Bot:', ' '.join(output_words))
+            except KeyError:
+                print('I beg your pardon?')
+
+    def infer(self, sess: tf.Session, sentence):
+
+        # noinspection PyRedundantParentheses
+        while not self.training:
+            try:
+
+                input_sentence = voc.unicode_to_ascii(sentence)
+                input_sentence = np.asarray(
+                    [voc.SOS_token] + [self.voc.word2index[word] for word in input_sentence.split(' ')] + [
                         voc.EOS_token])
 
                 if input_sentence.shape[0] >= self.max_length:
@@ -328,7 +359,7 @@ class Sequence2Sequence(object):
 
 
 def do_training():
-    config = {'batch_size': 150,
+    config = {'batch_size': 200,
               'max_length': 15,
               'embedding_size': 512,
               'voc_dir': 'data/voc.npy',
@@ -340,8 +371,8 @@ def do_training():
 
     data = Dataset(**config)
     model = Sequence2Sequence(**config)
-    restore_d = None  # '/home/ymcidence/Workspace/ChatBotYH/data/log/model/Sun02Dec2018-082331/ymmodel-130000'
-    model.train(data, sess, 300000, log_dir='data/log', restore_dir=restore_d)
+    restore_dir = '/home/ymcidence/Workspace/ChatBotYH/data/log/model/Sun02Dec2018-175443/ymmodel-230000'
+    model.train(data, sess, 300000, log_dir='data/log', restore_dir=restore_dir)
 
 
 def do_test():
@@ -356,9 +387,35 @@ def do_test():
     sess = tf.Session(config=sess_config)
 
     model = Sequence2Sequence(**config)
-    restore_dir = '/home/ymcidence/Workspace/ChatBotYH/data/log/model/Sun02Dec2018-082331/ymmodel-120000'
+    restore_dir = '/home/ymcidence/Workspace/ChatBotYH/data/log/model/Mon03Dec2018-084901/ymmodel-530000'
     model.test(sess, restore_dir=restore_dir)
 
 
+def do_infer():
+    config = {'batch_size': 1,
+              'max_length': 15,
+              'embedding_size': 512,
+              'voc_dir': 'data/voc.npy',
+              'sentence_dir': 'data/sentences.npy',
+              'training': False}
+
+    sess_config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+    sess = tf.Session(config=sess_config)
+
+    model = Sequence2Sequence(**config)
+    initial_op = tf.global_variables_initializer()
+
+    sess.run(initial_op)
+
+    restore_dir = '/home/ymcidence/Workspace/ChatBotYH/data/log/model/Sun02Dec2018-175443/ymmodel-230000'
+
+    model.restore(restore_dir, sess)
+
+    input_sentence = ''
+
+    model.infer(sess, input_sentence)
+
+
 if __name__ == '__main__':
-    do_training()
+    # do_training()
+    do_test()
