@@ -1,7 +1,7 @@
 # Language Models for Chatbot
 
 
-## 1. Currently what we have:
+## 1 Currently What We Have:
 
 ### 1.1 General Sentence Embedding
 Currently we are using the [Universal Sentence Embedding](https://tfhub.dev/google/universal-sentence-encoder/2) model 
@@ -34,7 +34,7 @@ correct me if I misunderstood).
 We are using a [Seq2Seq](https://arxiv.org/abs/1703.03906) + [attention](https://arxiv.org/abs/1508.04025) 
 model very similar to the one discussed in the 
 [Pytorch Chatbot Tutorial](https://pytorch.org/tutorials/beginner/chatbot_tutorial.html), with minor modification on
-the decoder.
+the decoder. We implemented it in the framework of Tensorflow.
 ![attention](_resources/global_attn.png)
 
 Training set includes some parts of the following corpuses:
@@ -46,3 +46,23 @@ Training set includes some parts of the following corpuses:
 
 For now, the model is not able to handle multi-turn conversations, and not all listed datasets support multi-turn 
 conversational training.
+
+## 2 What to Do next in Terms of Learning Models
+Despite the system-level architectural issues, there remains several problems to make the bot perform naturally and stably.
+
+### 2.1 Better Ways Ensembling Retrieval and Generation-Based conversation
+Something like:
+
+* [An Ensemble of Retrieval-Based and Generation-Based Human-Computer Conversation Systems, IJCAI18](https://www.ijcai.org/proceedings/2018/0609.pdf)
+
+### 2.2 Multi-Turn Conversation Regarding the Context
+* [Multi-Turn Response Selection for Chatbots with Deep Attention Matching Network](http://www.aclweb.org/anthology/P18-1103)
+
+with some conversational dataset:
+* [The Ubuntu Dialogue Corpus: A Large Dataset for Research in Unstructured Multi-Turn Dialogue Systems](https://arxiv.org/abs/1506.08909)
+* [CoQA: A Conversational Question Answering Challenge](https://stanfordnlp.github.io/coqa/)
+
+### 2.3 Diversify Simple Outputs
+tbc.............
+### KG-Based Systems
+tbc.............any idea?
