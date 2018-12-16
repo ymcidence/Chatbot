@@ -63,6 +63,6 @@ with some conversational dataset:
 * [CoQA: A Conversational Question Answering Challenge](https://stanfordnlp.github.io/coqa/)
 
 ### 2.3 Diversify Simple Outputs
-tbc.............
-### KG-Based Systems
+
+### 2.4 KG-Based Systems
 tbc.............any idea?
