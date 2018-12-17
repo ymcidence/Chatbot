@@ -75,4 +75,4 @@ with some conversational dataset:
 tbc.............any idea?
 
 ### 2.5 Something Possibly Helpful in the Future
-* The copy mechanism: [[ACL16]Incorporating Copying Mechanism in Sequence-to-Sequence Learning](https://arxiv.org/pdf/1603.06393.pdf)
+* The copy mechanism: [[ACL16] Incorporating Copying Mechanism in Sequence-to-Sequence Learning](https://arxiv.org/pdf/1603.06393.pdf)
