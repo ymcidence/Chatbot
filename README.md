@@ -61,7 +61,7 @@ Something like:
 
 Some related articles:
 * [[ACL18] Knowledge Diffusion for Neural Dialogue Generation](http://www.aclweb.org/anthology/P18-1138)
-* [[ACL18]Multi-Turn Response Selection for Chatbots with Deep Attention Matching Network](http://www.aclweb.org/anthology/P18-1103)
+* [[ACL18] Multi-Turn Response Selection for Chatbots with Deep Attention Matching Network](http://www.aclweb.org/anthology/P18-1103)
 
 with some conversational dataset:
 * [The Ubuntu Dialogue Corpus: A Large Dataset for Research in Unstructured Multi-Turn Dialogue Systems](https://arxiv.org/abs/1506.08909)
