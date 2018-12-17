@@ -52,7 +52,7 @@ Despite the system-level architectural issues, there remains several problems to
 
 ### 2.1 Better Ways Ensembling Retrieval and Generation-Based conversation
 Something like:
-
+* [Knowledge Diffusion for Neural Dialogue Generation](http://www.aclweb.org/anthology/P18-1138)
 * [An Ensemble of Retrieval-Based and Generation-Based Human-Computer Conversation Systems, IJCAI18](https://www.ijcai.org/proceedings/2018/0609.pdf)
 
 ### 2.2 Multi-Turn Conversation Regarding the Context
