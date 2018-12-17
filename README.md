@@ -52,15 +52,15 @@ Despite the system-level architectural issues, there remains several problems to
 
 ### 2.1 Better Ways Ensembling Retrieval and Generation-Based conversation
 Something like:
-* [Knowledge Diffusion for Neural Dialogue Generation](http://www.aclweb.org/anthology/P18-1138)
-* [An Ensemble of Retrieval-Based and Generation-Based Human-Computer Conversation Systems, IJCAI18](https://www.ijcai.org/proceedings/2018/0609.pdf)
+* [[ACL18] Knowledge Diffusion for Neural Dialogue Generation](http://www.aclweb.org/anthology/P18-1138)
+* [[IJCAI18] An Ensemble of Retrieval-Based and Generation-Based Human-Computer Conversation Systems](https://www.ijcai.org/proceedings/2018/0609.pdf)
 
 ### 2.2 Multi-Turn Conversation Regarding the Context
 
 **Acutually almost everything we want to do starts with** *'how to make use of the context'*. So maybe we are starting from here.
 
 Some related articles:
-* [Multi-Turn Response Selection for Chatbots with Deep Attention Matching Network](http://www.aclweb.org/anthology/P18-1103)
+* [[ACL18]Multi-Turn Response Selection for Chatbots with Deep Attention Matching Network](http://www.aclweb.org/anthology/P18-1103)
 
 with some conversational dataset:
 * [The Ubuntu Dialogue Corpus: A Large Dataset for Research in Unstructured Multi-Turn Dialogue Systems](https://arxiv.org/abs/1506.08909)
