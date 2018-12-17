@@ -64,6 +64,8 @@ Some related articles:
 * [[ACL18] Multi-Turn Response Selection for Chatbots with Deep Attention Matching Network](http://www.aclweb.org/anthology/P18-1103)
 
 with some conversational dataset:
+
+* [DailyDialog: A Manually Labelled Multi-turn Dialogue Dataset](http://yanran.li/dailydialog)
 * [The Ubuntu Dialogue Corpus: A Large Dataset for Research in Unstructured Multi-Turn Dialogue Systems](https://arxiv.org/abs/1506.08909)
 * [CoQA: A Conversational Question Answering Challenge](https://stanfordnlp.github.io/coqa/)
 
@@ -71,3 +73,6 @@ with some conversational dataset:
 
 ### 2.4 KG-Based Systems
 tbc.............any idea?
+
+### 2.5 Something Possibly Helpful in the Future
+* The copy mechanism: [[ACL16]Incorporating Copying Mechanism in Sequence-to-Sequence Learning](https://arxiv.org/pdf/1603.06393.pdf)
