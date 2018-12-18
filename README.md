@@ -40,8 +40,8 @@ the decoder. We implemented it in the framework of Tensorflow.
 Training set includes some parts of the following corpuses:
 * [Cornell Movie-Dialogs Corpus](https://www.cs.cornell.edu/~cristian/Cornell_Movie-Dialogs_Corpus.html)
 * [Twitter](https://github.com/Marsan-Ma/twitter_scraper)
-* [CommonSense](?)
-* Something from Reddit
+* [CommonSense]()
+* Something from [Reddit](http://files.pushshift.io/reddit/comments/)
 * etc.
 
 For now, the model is not able to handle multi-turn conversations, and not all listed datasets support multi-turn 
