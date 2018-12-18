@@ -57,7 +57,7 @@ Something like:
 
 ### 2.2 Multi-Turn Conversation Regarding the Context
 
-**Acutually almost everything we want to do starts with** *'how to make use of the context'*. So maybe we are starting from here.
+**Actually almost everything we want to do starts with** *'how to make use of the context'*. So maybe we are starting from here.
 
 Some related articles:
 * [[ACL18] Knowledge Diffusion for Neural Dialogue Generation](http://www.aclweb.org/anthology/P18-1138)
